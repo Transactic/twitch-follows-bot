@@ -3,6 +3,7 @@ import random
 import time
 from bs4 import BeautifulSoup
 import os
+from requests.auth import HTTPProxyAuth
 
 # Function to read proxies from a file
 def load_proxies(file_path):
@@ -32,11 +33,23 @@ TOKENS = load_tokens(tokens_file)
 # Function to follow a Twitch channel without using the API
 def follow_channel_custom(token, proxy, channel_name):
     try:
+        # Check if proxy requires authentication
+        if "@" in proxy:
+            proxy_split = proxy.split("@")
+            auth = HTTPProxyAuth(proxy_split[0].split(":")[0], proxy_split[0].split(":")[1])  # username:password
+            proxy_url = proxy_split[1]
+        else:
+            auth = None
+            proxy_url = proxy
+
         # Initialize session with proxy
         session = requests.Session()
 
-        # Use ip:port format for proxies (no authentication)
-        session.proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
+        # Use ip:port format for proxies (no authentication if no username/password)
+        session.proxies = {"http": f"http://{proxy_url}", "https": f"http://{proxy_url}"}
+
+        if auth:
+            session.auth = auth
 
         # Set headers (including authentication token as cookie)
         headers = {
